@@ -1,0 +1,30 @@
+{
+  "name": "autocube-sandbox",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@rainbow-me/rainbowkit": "^1.0.11",
+    "@react-three/drei": "^9.83.9",
+    "@react-three/fiber": "^8.14.1",
+    "@types/three": "^0.156.0",
+    "next": "^13.4.19",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.156.1",
+    "viem": "~1.10.7",
+    "wagmi": "~1.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.12",
+    "@types/react": "^18.2.21",
+    "eslint": "^8.15.0",
+    "eslint-config-next": "^13.4.19",
+    "typescript": "^5.0.4"
+  }
+}
