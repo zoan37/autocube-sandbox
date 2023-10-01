@@ -12,12 +12,14 @@ const Scene = () => {
   const rendererRef = useRef<THREE.WebGLRenderer | undefined>(undefined);
 
   function init() {
+    const avatarMap = {} as any;
+
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({
       antialias: true
     });
     rendererRef.current = renderer;
-    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current!.appendChild(renderer.domElement);
 
@@ -26,11 +28,11 @@ const Scene = () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
 
-      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setSize(window.innerWidth, window.innerHeight);
 
     }
 
-    window.addEventListener( 'resize', onWindowResize );
+    window.addEventListener('resize', onWindowResize);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
@@ -95,6 +97,28 @@ const Scene = () => {
     const vrmList = [] as any[];
     const mixerList = [] as any[];
 
+    const AVATAR_ID_1 = 'avatar1';
+    const AVATAR_ID_2 = 'avatar2';
+
+    const animations = [
+      'Idle',
+      'Jumping',
+      'Chicken Dance',
+      'Gangnam Style',
+      'Samba Dancing',
+      'Silly Dancing',
+      'Snake Hip Hop Dance',
+      'Twist Dance',
+      'Wave Hip Hop Dance',
+
+      // 'Running',
+      // 'Walking',
+    ];
+
+    function getAnimationUrl(name: string) {
+      return `./animations/${name}.fbx`;
+    }
+
     const clock = new THREE.Clock();
     const animate = function () {
       requestAnimationFrame(animate);
@@ -104,6 +128,7 @@ const Scene = () => {
       cube.rotation.x += 0.01;
       cube.rotation.y += 0.01;
 
+      /*
       // loop through mixer list
       for (let i = 0; i < mixerList.length; i++) {
         const mixer = mixerList[i];
@@ -116,6 +141,20 @@ const Scene = () => {
         const vrm = vrmList[i];
 
         vrm.update(deltaTime);
+      }
+      */
+
+      // loop through avatarMap
+      for (var id in avatarMap) {
+        const avatar = avatarMap[id];
+
+        if (avatar.mixer) {
+          avatar.mixer.update(deltaTime);
+        }
+
+        if (avatar.vrm) {
+          avatar.vrm.update(deltaTime);
+        }
       }
 
       controls.update();
@@ -131,8 +170,15 @@ const Scene = () => {
     helperRoot.visible = false;
 
     const defaultModelUrl = 'https://w3s.link/ipfs/QmUmn19HHPVEdREmz46K8YToChNCh3eHb9XWJUT5PLoAsL/default_103.vrm';
+    // const model2Url = 'https://w3s.link/ipfs/QmQcV1m51AXNdZUsQNoPeEyVFWbnWgzdWKASdxEuaT3VEd/default_1802.vrm';
+    const model3Url = 'https://w3s.link/ipfs/QmZiCnsyNaTvazx5b38zHZJGxQpMZHFWs1n4veoiAdLcoN/default_877.vrm';
+    const model4Url = 'https://w3s.link/ipfs/QmRZG25uNX1RHWnpZpx4DkAf7J8a1ZMhDUAZFXpzMCzxUS/default_1699.vrm';
+    const model5Url = 'https://w3s.link/ipfs/QmVPHNjZoX9JgFZWU9o2EczpyQZXSqnooV5pZumBx8jLAS/default_1904.vrm'
 
-    function loadUniqueVrm(modelUrl: string, callback: (vrm: any) => void) {
+    const model1Url = defaultModelUrl;
+    const model2Url = model3Url;
+
+    function loadUniqueVrm(modelUrl: string, callback: (err: any, data: any) => void) {
 
       const loader = new GLTFLoader();
       loader.crossOrigin = 'anonymous';
@@ -171,7 +217,10 @@ const Scene = () => {
           console.log('vrm', vrm);
 
           if (callback) {
-            callback(vrm);
+            callback(null, { 
+              gltf: gltf,
+              vrm: vrm
+            });
           }
         },
 
@@ -200,6 +249,7 @@ const Scene = () => {
       });
     }
 
+    /*
     loadUniqueVrm(defaultModelUrl, function (vrm) {
       // const idleAnimation = '/animations/Standard Idle.fbx';
       const idleAnimation = '/animations/Chicken Dance.fbx';
@@ -217,6 +267,170 @@ const Scene = () => {
         }
       });
     });
+    */
+
+    async function createAvatar(id: string, modelUrl: string) {
+      const avatar = {
+        id: id as string,
+        modelUrl: modelUrl as string,
+        gltf: undefined as any,
+        vrm: undefined as any,
+        mixer: undefined as any,
+        animationActions: {} as any,
+        currentAnimationAction: null
+      };
+
+      avatarMap[id] = avatar;
+
+      const data: any = await (function () {
+        return new Promise((resolve, reject) => {
+          loadUniqueVrm(modelUrl, (err: any, data: any) => {
+            resolve(data);
+          });
+        })
+      })();
+
+      avatar.gltf = data.gltf;
+      avatar.vrm = data.vrm;
+      avatar.mixer = new THREE.AnimationMixer(data.vrm.scene);
+      avatar.mixer.timeScale = 1.0;
+
+      // load animations
+      for (var i = 0; i < animations.length; i++) {
+        const animation = animations[i];
+        const animationUrl = getAnimationUrl(animation);
+
+        console.log('Loading animation: ' + animationUrl);
+
+        const clip = await (function () {
+          return new Promise((resolve, reject) => {
+            loadMixamoAnimation(animationUrl, avatar.vrm).then((clip) => {
+              resolve(clip);
+            });
+          })
+        })();
+
+        avatar.animationActions[animation] = avatar.mixer.clipAction(clip);
+      }
+
+      return avatar;
+    }
+
+    function playAnimation(id: string, animation: string) {
+      const avatar = avatarMap[id];
+
+      if (!avatar) {
+        console.error('Avatar not found: ' + id);
+        return;
+      }
+
+      const animationAction = avatar.animationActions[animation];
+
+      if (!animationAction) {
+        console.error('Animation action not found: ' + animation);
+        return;
+      }
+
+      if (avatar.currentAnimationAction == animationAction) {
+        return;
+      }
+
+      // fade out current animation
+      const DURATION = 0.5;
+
+      if (avatar.currentAnimationAction) {
+        animationAction.reset();
+        avatar.currentAnimationAction
+          .crossFadeTo(animationAction, DURATION, true)
+          .play();
+      } else {
+        animationAction.reset();
+        animationAction.play();
+      }
+
+      avatar.currentAnimationAction = animationAction;
+
+      // animationAction.reset();
+      // animationAction.play();
+
+      /*
+      avatar.currentAnimationAction.reset()
+          .setEffectiveTimeScale(1)
+          .setEffectiveWeight(1)
+          .fadeIn(DURATION)
+          .play();
+      */
+    }
+
+    async function initializeAvatars() {
+      const avatar1 = await createAvatar(AVATAR_ID_1, model1Url);
+
+      scene.add(avatar1.vrm.scene);
+      avatar1.vrm.scene.position.set(0.8, 0, 0);
+      avatar1.vrm.scene.rotation.y = Math.PI / 2;
+
+      playAnimation(AVATAR_ID_1, 'Idle');
+
+      const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
+      scene.add(avatar2.vrm.scene);
+      avatar2.vrm.scene.position.set(-0.8, 0, 0);
+      avatar2.vrm.scene.rotation.y = -Math.PI / 2;
+
+      playAnimation(AVATAR_ID_2, 'Idle');
+
+      /*
+      'Jumping',
+      'Chicken Dance',
+      'Gangnam Style',
+      'Samba Dancing',
+      'Silly Dancing',
+      'Snake Hip Hop Dance',
+      'Twist Dance',
+      'Wave Hip Hop Dance',
+      */
+
+      setTimeout(() => {
+        playAnimation(AVATAR_ID_1, 'Jumping');
+        playAnimation(AVATAR_ID_2, 'Jumping');
+
+        setTimeout(() => {
+          playAnimation(AVATAR_ID_1, 'Chicken Dance');
+          playAnimation(AVATAR_ID_2, 'Chicken Dance');
+
+          setTimeout(() => {
+            playAnimation(AVATAR_ID_1, 'Gangnam Style');
+            playAnimation(AVATAR_ID_2, 'Gangnam Style');
+
+            setTimeout(() => {
+              playAnimation(AVATAR_ID_1, 'Samba Dancing');
+              playAnimation(AVATAR_ID_2, 'Samba Dancing');
+
+              setTimeout(() => {
+                playAnimation(AVATAR_ID_1, 'Silly Dancing');
+                playAnimation(AVATAR_ID_2, 'Silly Dancing');
+
+                setTimeout(() => {
+                  playAnimation(AVATAR_ID_1, 'Snake Hip Hop Dance');
+                  playAnimation(AVATAR_ID_2, 'Snake Hip Hop Dance');
+
+                  setTimeout(() => {
+                    playAnimation(AVATAR_ID_1, 'Twist Dance');
+                    playAnimation(AVATAR_ID_2, 'Twist Dance');
+
+                    setTimeout(() => {
+                      playAnimation(AVATAR_ID_1, 'Wave Hip Hop Dance');
+                      playAnimation(AVATAR_ID_2, 'Wave Hip Hop Dance');
+                    }, 2000);
+                  }, 2000);
+                }, 2000);
+              }, 2000);
+            }, 2000);
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    }
+
+    initializeAvatars();
   }
 
   useEffect(() => {
