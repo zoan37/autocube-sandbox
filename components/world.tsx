@@ -17,9 +17,20 @@ const Scene = () => {
       antialias: true
     });
     rendererRef.current = renderer;
-
+    renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize(window.innerWidth, window.innerHeight);
     containerRef.current!.appendChild(renderer.domElement);
+
+    function onWindowResize() {
+
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize( window.innerWidth, window.innerHeight );
+
+    }
+
+    window.addEventListener( 'resize', onWindowResize );
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
@@ -190,7 +201,9 @@ const Scene = () => {
     }
 
     loadUniqueVrm(defaultModelUrl, function (vrm) {
-      const idleAnimation = '/animations/Standard Idle.fbx';
+      // const idleAnimation = '/animations/Standard Idle.fbx';
+      const idleAnimation = '/animations/Chicken Dance.fbx';
+      // const idleAnimation = '/animations/Silly Dancing.fbx';
 
       loadFBXForVRM(idleAnimation, vrm);
 
