@@ -6,10 +6,18 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { loadMixamoAnimation } from './loadMixamoAnimation.js';
+import ChatBox from './chatbox';
 
 const Scene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | undefined>(undefined);
+  
+  const [playAnimationHandler, setPlayAnimationHandler] = React.useState<(animation: string) => void>(() => {});
+  /*
+  let playAnimationHandler = function(animation: string) {
+    console.log('placeholder playAnimationHandler: ' + animation);
+  }
+  */
 
   function init() {
     const avatarMap = {} as any;
@@ -217,7 +225,7 @@ const Scene = () => {
           console.log('vrm', vrm);
 
           if (callback) {
-            callback(null, { 
+            callback(null, {
               gltf: gltf,
               vrm: vrm
             });
@@ -316,7 +324,23 @@ const Scene = () => {
       return avatar;
     }
 
-    function playAnimation(id: string, animation: string) {
+    function playAnimation(id: string, inputAnimation: string) {
+      // get correct case animation from input animation (which is lowercase)
+      const animationList = Object.keys(avatarMap[id].animationActions);
+
+      console.log('animationList', animationList);
+
+      const animationIndex = animationList.findIndex((item) => {
+        return item.toLowerCase() == inputAnimation.toLowerCase();
+      });
+
+      if (animationIndex == -1) {
+        console.error('Animation not found: ' + inputAnimation);
+        return;
+      }
+
+      const animation = animationList[animationIndex];
+
       const avatar = avatarMap[id];
 
       if (!avatar) {
@@ -389,6 +413,7 @@ const Scene = () => {
       'Wave Hip Hop Dance',
       */
 
+      /*
       setTimeout(() => {
         playAnimation(AVATAR_ID_1, 'Jumping');
         playAnimation(AVATAR_ID_2, 'Jumping');
@@ -428,18 +453,59 @@ const Scene = () => {
           }, 2000);
         }, 2000);
       }, 2000);
+      */
     }
 
     initializeAvatars();
+
+    const playAnimationHandlerLocal = (animation: string) => {
+      console.log('playAnimationHandler: ' + animation);
+
+      // playAnimation(AVATAR_ID_1, animation);
+      playAnimation(AVATAR_ID_2, animation);
+    }
+
+    console.log('previous playAnimationHandler: ' + playAnimationHandler);
+    console.log('new playAnimationHandler: ', playAnimationHandlerLocal);
+
+    setPlayAnimationHandler(() => {
+      return playAnimationHandlerLocal;
+    });
   }
 
   useEffect(() => {
     if (!rendererRef.current) {
       init();
     }
-  }, []);
+  }, [playAnimationHandler]);
 
-  return <div ref={containerRef} />;
+  useEffect(() => {
+    console.log('current playAnimationHandler', playAnimationHandler);
+  }, [playAnimationHandler]);
+
+  return (
+    <div>
+      <style type="text/css">
+        {`
+            .chatbox_container {
+              position: absolute;
+              top: 0;
+              left: 0;
+              bottom: 0;
+              width: 300px;
+              background-color: gray;
+              overflow-y: scroll;
+            }
+        `}
+      </style>
+      <div ref={containerRef} />
+      <div className="chatbox_container">
+        <ChatBox 
+          playAnimationHandler={playAnimationHandler}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default Scene;
