@@ -3,10 +3,11 @@ import type { NextPage } from 'next';
 import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import Sandbox from '../components/sandbox';
+import Scene from '../components/world';
 
 const Home: NextPage = () => {
   return (
-    <div className={styles.container}>
+    <div>
       <Head>
         <title>RainbowKit App</title>
         <meta
@@ -15,6 +16,8 @@ const Home: NextPage = () => {
         />
         <link href="/favicon.ico" rel="icon" />
       </Head>
+
+      <Scene />
 
       <Sandbox />
 
