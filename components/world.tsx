@@ -393,14 +393,16 @@ const Scene = () => {
       avatar1.vrm.scene.position.set(0.8, 0, 0);
       avatar1.vrm.scene.rotation.y = Math.PI / 2;
 
-      playAnimation(AVATAR_ID_1, 'Idle');
+      const initialAnimation = 'Standard Idle';
+      
 
       const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
       scene.add(avatar2.vrm.scene);
       avatar2.vrm.scene.position.set(-0.8, 0, 0);
       avatar2.vrm.scene.rotation.y = -Math.PI / 2;
 
-      playAnimation(AVATAR_ID_2, 'Idle');
+      playAnimation(AVATAR_ID_1, initialAnimation);
+      playAnimation(AVATAR_ID_2, initialAnimation);
 
       /*
       'Jumping',
@@ -458,11 +460,12 @@ const Scene = () => {
 
     initializeAvatars();
 
-    const playAnimationHandlerLocal = (animation: string) => {
+    const playAnimationHandlerLocal = (role: string, animation: string) => {
       console.log('playAnimationHandler: ' + animation);
 
-      // playAnimation(AVATAR_ID_1, animation);
-      playAnimation(AVATAR_ID_2, animation);
+      const avatarId = role == 'user' ? AVATAR_ID_1 : AVATAR_ID_2;
+
+      playAnimation(avatarId, animation);
     }
 
     console.log('previous playAnimationHandler: ' + playAnimationHandler);
