@@ -7,12 +7,13 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { loadMixamoAnimation } from './loadMixamoAnimation.js';
 import ChatBox from './chatbox';
+import TWEEN from '@tweenjs/tween.js';
 
 const Scene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | undefined>(undefined);
-  
-  const [playAnimationHandler, setPlayAnimationHandler] = React.useState<(animation: string) => void>(() => {});
+
+  const [playAnimationHandler, setPlayAnimationHandler] = React.useState<(animation: string) => void>(() => { });
   /*
   let playAnimationHandler = function(animation: string) {
     console.log('placeholder playAnimationHandler: ' + animation);
@@ -118,6 +119,7 @@ const Scene = () => {
       'Snake Hip Hop Dance',
       'Twist Dance',
       'Wave Hip Hop Dance',
+      'Walking'
 
       // 'Running',
       // 'Walking',
@@ -164,6 +166,8 @@ const Scene = () => {
           avatar.vrm.update(deltaTime);
         }
       }
+
+      TWEEN.update();
 
       controls.update();
       renderer.render(scene, camera);
@@ -277,6 +281,74 @@ const Scene = () => {
     });
     */
 
+    function moveAvatarToPoint(avatar: any) {
+      // Calculate the distance between point1 and point2
+      // const distance = point2.distanceTo(point1);
+
+      // Calculate the direction vector from point1 to point2
+      // const direction = point2.clone().sub(point1).normalize();
+
+      // Calculate the duration of the animation based on the distance
+      // const duration = distance / avatar.walkSpeed;
+
+      // Create a new animation action for the avatar's mixer
+      // const action = avatar.mixer.clipAction(avatar.animationActions['walk']);
+
+      // Set the animation action to loop
+      // action.setLoop(THREE.LoopRepeat);
+
+      // Set the animation action to play from the beginning
+      // action.reset();
+
+      // Set the animation action to play for the calculated duration
+      // action.setDuration(duration);
+
+      // Set the animation action to play at the avatar's speed
+      // action.timeScale = avatar.speed;
+
+      // Set the animation action to start at point1
+      // avatar.currentAnimationAction = action;
+      // avatar.currentAnimationAction.play();
+
+      var position = { x: 100, y: 0 }
+
+
+      // Create a tween for position first
+      var tween = new TWEEN.Tween(position)
+
+      // Then tell the tween we want to animate the x property over 1000 milliseconds
+      tween.to({ x: 200 }, 1000)
+
+      tween.onUpdate(function (object) {
+        console.log('tween!')
+        console.log(object.x)
+      })
+
+      tween.start();
+
+      console.log('avatar.vrm.scene.position', avatar.vrm.scene.position);
+      let pos = avatar.vrm.scene.position;
+
+      const tween2 = new TWEEN.Tween(pos) // Create a new tween that modifies 'coords'.
+        .to({ x: 10, y: 0, z: 0 }, 10000); // Move to (300, 200) in 1 second.
+      // .easing(TWEEN.Easing.Linear.None)
+      tween2.onUpdate(() => {
+        // Called after tween.js updates 'coords'.
+        // Move 'box' to the position described by 'coords' with a CSS translation.
+        // box.style.setProperty('transform', 'translate(' + coords.x + 'px, ' + coords.y + 'px)')
+
+        console.log('pos', pos);
+
+        // avatar.vrm.scene.position.set(coords.x, 0, coords.y); // TODO: parameterize 
+      })
+      tween2.onComplete(() => {
+        playAnimation(avatar.id, 'Idle');
+      });
+      tween2.start() // Start the tween immediately.
+
+      playAnimation(avatar.id, 'Walking');
+    }
+
     async function createAvatar(id: string, modelUrl: string) {
       const avatar = {
         id: id as string,
@@ -285,7 +357,8 @@ const Scene = () => {
         vrm: undefined as any,
         mixer: undefined as any,
         animationActions: {} as any,
-        currentAnimationAction: null
+        currentAnimationAction: null,
+        walkSpeed: 1.0
       };
 
       avatarMap[id] = avatar;
@@ -394,7 +467,7 @@ const Scene = () => {
       avatar1.vrm.scene.rotation.y = Math.PI / 2;
 
       const initialAnimation = 'Standard Idle';
-      
+
 
       const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
       scene.add(avatar2.vrm.scene);
@@ -403,6 +476,10 @@ const Scene = () => {
 
       playAnimation(AVATAR_ID_1, initialAnimation);
       playAnimation(AVATAR_ID_2, initialAnimation);
+
+      setTimeout(() => {
+        moveAvatarToPoint(avatar1);
+      }, 1);
 
       /*
       'Jumping',
@@ -419,31 +496,31 @@ const Scene = () => {
       setTimeout(() => {
         playAnimation(AVATAR_ID_1, 'Jumping');
         playAnimation(AVATAR_ID_2, 'Jumping');
-
+ 
         setTimeout(() => {
           playAnimation(AVATAR_ID_1, 'Chicken Dance');
           playAnimation(AVATAR_ID_2, 'Chicken Dance');
-
+ 
           setTimeout(() => {
             playAnimation(AVATAR_ID_1, 'Gangnam Style');
             playAnimation(AVATAR_ID_2, 'Gangnam Style');
-
+ 
             setTimeout(() => {
               playAnimation(AVATAR_ID_1, 'Samba Dancing');
               playAnimation(AVATAR_ID_2, 'Samba Dancing');
-
+ 
               setTimeout(() => {
                 playAnimation(AVATAR_ID_1, 'Silly Dancing');
                 playAnimation(AVATAR_ID_2, 'Silly Dancing');
-
+ 
                 setTimeout(() => {
                   playAnimation(AVATAR_ID_1, 'Snake Hip Hop Dance');
                   playAnimation(AVATAR_ID_2, 'Snake Hip Hop Dance');
-
+ 
                   setTimeout(() => {
                     playAnimation(AVATAR_ID_1, 'Twist Dance');
                     playAnimation(AVATAR_ID_2, 'Twist Dance');
-
+ 
                     setTimeout(() => {
                       playAnimation(AVATAR_ID_1, 'Wave Hip Hop Dance');
                       playAnimation(AVATAR_ID_2, 'Wave Hip Hop Dance');
@@ -503,7 +580,7 @@ const Scene = () => {
       </style>
       <div ref={containerRef} />
       <div className="chatbox_container">
-        <ChatBox 
+        <ChatBox
           playAnimationHandler={playAnimationHandler}
         />
       </div>
