@@ -165,6 +165,13 @@ const Scene = () => {
         if (avatar.vrm) {
           avatar.vrm.update(deltaTime);
         }
+
+        if (avatar.targetDirection) {
+          // console.log('deltaTime', deltaTime);
+          const speed = 3;
+          const step = speed * deltaTime;
+          rotateAvatarInDirection(avatar, avatar.targetDirection, step);
+        }
       }
 
       TWEEN.update();
@@ -281,7 +288,47 @@ const Scene = () => {
     });
     */
 
-    function moveAvatarToPoint(avatar: any) {
+    function rotateAvatarInDirection(avatar: any, direction: THREE.Vector3, step: number) {
+      const lookAtVector = new THREE.Vector3();
+      lookAtVector.copy(avatar.vrm.scene.position);
+      lookAtVector.add(direction);
+
+      var matrix = new THREE.Matrix4();
+      matrix.lookAt(avatar.vrm.scene.position, lookAtVector, avatar.vrm.scene.up);
+
+      var quaternion = new THREE.Quaternion();
+      quaternion.setFromRotationMatrix(matrix);
+
+      avatar.vrm.scene.quaternion.rotateTowards(quaternion, step);
+
+
+      /*
+      // get current avatar direction
+      const currentDirection = new THREE.Vector3();
+      avatar.vrm.scene.getWorldDirection(currentDirection);
+
+      // get dot product of current direction and target direction
+      const dot = currentDirection.dot(direction);
+
+      // get angle between current direction and target direction
+
+
+
+      const angle = Math.atan2(direction.x, direction.z);
+
+      const currentAngle = avatar.vrm.scene.rotation.y;
+      const shortestAngle = Math.atan2(Math.sin(angle - currentAngle), Math.cos(angle - currentAngle));
+
+      const tween = new TWEEN.Tween({ rotation: currentAngle })
+        .to({ rotation: shortestAngle }, 500)
+        .onUpdate(function (object) {
+          avatar.vrm.scene.rotation.y = object.rotation;
+        })
+        .start();
+      */
+    }
+
+    function moveAvatarToPoint(avatar: any, target: THREE.Vector3, duration: number) {
       // Calculate the distance between point1 and point2
       // const distance = point2.distanceTo(point1);
 
@@ -310,6 +357,7 @@ const Scene = () => {
       // avatar.currentAnimationAction = action;
       // avatar.currentAnimationAction.play();
 
+      /*
       var position = { x: 100, y: 0 }
 
 
@@ -325,12 +373,21 @@ const Scene = () => {
       })
 
       tween.start();
+      */
+
 
       console.log('avatar.vrm.scene.position', avatar.vrm.scene.position);
       let pos = avatar.vrm.scene.position;
 
+      // direction vector
+      const direction = target.clone().sub(pos).normalize();
+
+      // rotate avatar in direction
+      // rotateAvatarInDirection(avatar, direction);
+      avatar.targetDirection = direction;
+
       const tween2 = new TWEEN.Tween(pos) // Create a new tween that modifies 'coords'.
-        .to({ x: 10, y: 0, z: 0 }, 10000); // Move to (300, 200) in 1 second.
+        .to({ x: target.x, y: target.y, z: target.z }, duration); // Move to (300, 200) in 1 second.
       // .easing(TWEEN.Easing.Linear.None)
       tween2.onUpdate(() => {
         // Called after tween.js updates 'coords'.
@@ -342,11 +399,11 @@ const Scene = () => {
         // avatar.vrm.scene.position.set(coords.x, 0, coords.y); // TODO: parameterize 
       })
       tween2.onComplete(() => {
-        playAnimation(avatar.id, 'Idle');
+        // playAnimation(avatar.id, 'Idle');
       });
       tween2.start() // Start the tween immediately.
 
-      playAnimation(avatar.id, 'Walking');
+      // playAnimation(avatar.id, 'Walking');
     }
 
     async function createAvatar(id: string, modelUrl: string) {
@@ -464,7 +521,7 @@ const Scene = () => {
 
       scene.add(avatar1.vrm.scene);
       avatar1.vrm.scene.position.set(0.8, 0, 0);
-      avatar1.vrm.scene.rotation.y = Math.PI / 2;
+      // avatar1.vrm.scene.rotation.y = Math.PI / 2;
 
       const initialAnimation = 'Standard Idle';
 
@@ -472,13 +529,24 @@ const Scene = () => {
       const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
       scene.add(avatar2.vrm.scene);
       avatar2.vrm.scene.position.set(-0.8, 0, 0);
-      avatar2.vrm.scene.rotation.y = -Math.PI / 2;
+      // avatar2.vrm.scene.rotation.y = -Math.PI / 2;
 
       playAnimation(AVATAR_ID_1, initialAnimation);
       playAnimation(AVATAR_ID_2, initialAnimation);
 
       setTimeout(() => {
-        moveAvatarToPoint(avatar1);
+        moveAvatarToPoint(avatar1, new THREE.Vector3(5, 0, 0), 2500);
+        moveAvatarToPoint(avatar2, new THREE.Vector3(-5, 0, 0), 2500);
+        playAnimation(avatar1.id, 'Walking');
+        playAnimation(avatar2.id, 'Walking');
+        setTimeout(() => {
+          moveAvatarToPoint(avatar1, new THREE.Vector3(5, 0, 5), 2500);
+          moveAvatarToPoint(avatar2, new THREE.Vector3(-5, 0, 5), 2500);
+          setTimeout(() => {
+            playAnimation(avatar1.id, 'Idle');
+            playAnimation(avatar2.id, 'Idle');
+          }, 2500);
+        }, 2500);
       }, 1);
 
       /*
