@@ -100,8 +100,8 @@ const Scene = () => {
     controls.minDistance = 1;
     controls.maxDistance = 50;
 
-    camera.position.z = 5;
-    camera.position.y = 2;
+    camera.position.z = 5 * 1.3;
+    camera.position.y = 3 * 1.3;
 
     const vrmList = [] as any[];
     const mixerList = [] as any[];
@@ -516,15 +516,81 @@ const Scene = () => {
       */
     }
 
+    // function get random vector of (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
+    function getRandomDirection() {
+      const directions = [
+        new THREE.Vector3(-1, 0, 0),
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(0, 0, -1),
+        new THREE.Vector3(0, 0, 1)
+      ];
+
+      const index = Math.floor(Math.random() * directions.length);
+
+      return directions[index];
+    }
+
     async function initializeAvatars() {
+      const fileList = [
+        "default_103.vrm", "default_1699.vrm", "default_1833.vrm", "default_2216.vrm", "default_2299.vrm", "default_862.vrm",
+        "default_1311.vrm", "default_1705.vrm", "default_1882.vrm", "default_2235.vrm", "default_2313.vrm", "default_877.vrm",
+        "default_1476.vrm", "default_1712.vrm", "default_1903.vrm", "default_2262.vrm", "default_2320.vrm",
+        "default_1503.vrm", "default_1713.vrm", "default_2145.vrm", "default_2263.vrm", "default_2324.vrm",
+        "default_1578.vrm", "default_1714.vrm", "default_2192.vrm", "default_2297.vrm", "default_2326.vrm",
+        "default_1649.vrm", "default_1802.vrm", "default_2196.vrm", "default_2298.vrm", "default_28.vrm"
+      ];
+
+      const avatars = [];
+
+      for (var i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const modelUrl = `./avatars/${file}`;
+        const id = `avatar_${i}`;
+        const avatar = await createAvatar(id, modelUrl);
+        avatars.push(avatar);
+      }
+
+
+
+      const initialAnimation = 'Idle';
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        scene.add(avatar.vrm.scene);
+        // avatar.vrm.scene.position.set(i, 0, 0);
+        playAnimation(avatar.id, initialAnimation);
+      }
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        playAnimation(avatar.id, 'Walking');
+      }
+      
+      while (true) {
+        for (var i = 0; i < avatars.length; i++) {
+          const avatar = avatars[i];
+          const randomDirection = getRandomDirection();
+          const target = avatar.vrm.scene.position.clone().add(randomDirection);
+  
+          moveAvatarToPoint(avatar, target, 1000);
+        }
+
+        // wait 0.5 seconds
+        await new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(null);
+          }, 1000);
+        });
+      }
+
+
+      /*
+
       const avatar1 = await createAvatar(AVATAR_ID_1, model1Url);
 
       scene.add(avatar1.vrm.scene);
       avatar1.vrm.scene.position.set(0.8, 0, 0);
       // avatar1.vrm.scene.rotation.y = Math.PI / 2;
-
-      const initialAnimation = 'Standard Idle';
-
 
       const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
       scene.add(avatar2.vrm.scene);
@@ -548,6 +614,7 @@ const Scene = () => {
           }, 2500);
         }, 2500);
       }, 1);
+      */
 
       /*
       'Jumping',
@@ -643,6 +710,7 @@ const Scene = () => {
               width: 300px;
               background-color: gray;
               overflow-y: scroll;
+              display: none;
             }
         `}
       </style>
