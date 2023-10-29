@@ -7,12 +7,13 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { loadMixamoAnimation } from './loadMixamoAnimation.js';
 import ChatBox from './chatbox';
+import TWEEN from '@tweenjs/tween.js';
 
 const Scene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | undefined>(undefined);
-  
-  const [playAnimationHandler, setPlayAnimationHandler] = React.useState<(animation: string) => void>(() => {});
+
+  const [playAnimationHandler, setPlayAnimationHandler] = React.useState<(animation: string) => void>(() => { });
   /*
   let playAnimationHandler = function(animation: string) {
     console.log('placeholder playAnimationHandler: ' + animation);
@@ -99,8 +100,8 @@ const Scene = () => {
     controls.minDistance = 1;
     controls.maxDistance = 50;
 
-    camera.position.z = 5;
-    camera.position.y = 2;
+    camera.position.z = 5 * 1.3;
+    camera.position.y = 3 * 1.3;
 
     const vrmList = [] as any[];
     const mixerList = [] as any[];
@@ -118,6 +119,7 @@ const Scene = () => {
       'Snake Hip Hop Dance',
       'Twist Dance',
       'Wave Hip Hop Dance',
+      'Walking'
 
       // 'Running',
       // 'Walking',
@@ -163,7 +165,16 @@ const Scene = () => {
         if (avatar.vrm) {
           avatar.vrm.update(deltaTime);
         }
+
+        if (avatar.targetDirection) {
+          // console.log('deltaTime', deltaTime);
+          const speed = 3;
+          const step = speed * deltaTime;
+          rotateAvatarInDirection(avatar, avatar.targetDirection, step);
+        }
       }
+
+      TWEEN.update();
 
       controls.update();
       renderer.render(scene, camera);
@@ -277,6 +288,124 @@ const Scene = () => {
     });
     */
 
+    function rotateAvatarInDirection(avatar: any, direction: THREE.Vector3, step: number) {
+      const lookAtVector = new THREE.Vector3();
+      lookAtVector.copy(avatar.vrm.scene.position);
+      lookAtVector.add(direction);
+
+      var matrix = new THREE.Matrix4();
+      matrix.lookAt(avatar.vrm.scene.position, lookAtVector, avatar.vrm.scene.up);
+
+      var quaternion = new THREE.Quaternion();
+      quaternion.setFromRotationMatrix(matrix);
+
+      avatar.vrm.scene.quaternion.rotateTowards(quaternion, step);
+
+
+      /*
+      // get current avatar direction
+      const currentDirection = new THREE.Vector3();
+      avatar.vrm.scene.getWorldDirection(currentDirection);
+
+      // get dot product of current direction and target direction
+      const dot = currentDirection.dot(direction);
+
+      // get angle between current direction and target direction
+
+
+
+      const angle = Math.atan2(direction.x, direction.z);
+
+      const currentAngle = avatar.vrm.scene.rotation.y;
+      const shortestAngle = Math.atan2(Math.sin(angle - currentAngle), Math.cos(angle - currentAngle));
+
+      const tween = new TWEEN.Tween({ rotation: currentAngle })
+        .to({ rotation: shortestAngle }, 500)
+        .onUpdate(function (object) {
+          avatar.vrm.scene.rotation.y = object.rotation;
+        })
+        .start();
+      */
+    }
+
+    function moveAvatarToPoint(avatar: any, target: THREE.Vector3, duration: number) {
+      // Calculate the distance between point1 and point2
+      // const distance = point2.distanceTo(point1);
+
+      // Calculate the direction vector from point1 to point2
+      // const direction = point2.clone().sub(point1).normalize();
+
+      // Calculate the duration of the animation based on the distance
+      // const duration = distance / avatar.walkSpeed;
+
+      // Create a new animation action for the avatar's mixer
+      // const action = avatar.mixer.clipAction(avatar.animationActions['walk']);
+
+      // Set the animation action to loop
+      // action.setLoop(THREE.LoopRepeat);
+
+      // Set the animation action to play from the beginning
+      // action.reset();
+
+      // Set the animation action to play for the calculated duration
+      // action.setDuration(duration);
+
+      // Set the animation action to play at the avatar's speed
+      // action.timeScale = avatar.speed;
+
+      // Set the animation action to start at point1
+      // avatar.currentAnimationAction = action;
+      // avatar.currentAnimationAction.play();
+
+      /*
+      var position = { x: 100, y: 0 }
+
+
+      // Create a tween for position first
+      var tween = new TWEEN.Tween(position)
+
+      // Then tell the tween we want to animate the x property over 1000 milliseconds
+      tween.to({ x: 200 }, 1000)
+
+      tween.onUpdate(function (object) {
+        console.log('tween!')
+        console.log(object.x)
+      })
+
+      tween.start();
+      */
+
+
+      console.log('avatar.vrm.scene.position', avatar.vrm.scene.position);
+      let pos = avatar.vrm.scene.position;
+
+      // direction vector
+      const direction = target.clone().sub(pos).normalize();
+
+      // rotate avatar in direction
+      // rotateAvatarInDirection(avatar, direction);
+      avatar.targetDirection = direction;
+
+      const tween2 = new TWEEN.Tween(pos) // Create a new tween that modifies 'coords'.
+        .to({ x: target.x, y: target.y, z: target.z }, duration); // Move to (300, 200) in 1 second.
+      // .easing(TWEEN.Easing.Linear.None)
+      tween2.onUpdate(() => {
+        // Called after tween.js updates 'coords'.
+        // Move 'box' to the position described by 'coords' with a CSS translation.
+        // box.style.setProperty('transform', 'translate(' + coords.x + 'px, ' + coords.y + 'px)')
+
+        console.log('pos', pos);
+
+        // avatar.vrm.scene.position.set(coords.x, 0, coords.y); // TODO: parameterize 
+      })
+      tween2.onComplete(() => {
+        // playAnimation(avatar.id, 'Idle');
+      });
+      tween2.start() // Start the tween immediately.
+
+      // playAnimation(avatar.id, 'Walking');
+    }
+
     async function createAvatar(id: string, modelUrl: string) {
       const avatar = {
         id: id as string,
@@ -285,7 +414,8 @@ const Scene = () => {
         vrm: undefined as any,
         mixer: undefined as any,
         animationActions: {} as any,
-        currentAnimationAction: null
+        currentAnimationAction: null,
+        walkSpeed: 1.0
       };
 
       avatarMap[id] = avatar;
@@ -386,23 +516,105 @@ const Scene = () => {
       */
     }
 
+    // function get random vector of (-1, 0, 0), (1, 0, 0), (0, 0, -1), (0, 0, 1)
+    function getRandomDirection() {
+      const directions = [
+        new THREE.Vector3(-1, 0, 0),
+        new THREE.Vector3(1, 0, 0),
+        new THREE.Vector3(0, 0, -1),
+        new THREE.Vector3(0, 0, 1)
+      ];
+
+      const index = Math.floor(Math.random() * directions.length);
+
+      return directions[index];
+    }
+
     async function initializeAvatars() {
+      const fileList = [
+        "default_103.vrm", "default_1699.vrm", "default_1833.vrm", "default_2216.vrm", "default_2299.vrm", "default_862.vrm",
+        "default_1311.vrm", "default_1705.vrm", "default_1882.vrm", "default_2235.vrm", "default_2313.vrm", "default_877.vrm",
+        "default_1476.vrm", "default_1712.vrm", "default_1903.vrm", "default_2262.vrm", "default_2320.vrm",
+        "default_1503.vrm", "default_1713.vrm", "default_2145.vrm", "default_2263.vrm", "default_2324.vrm",
+        "default_1578.vrm", "default_1714.vrm", "default_2192.vrm", "default_2297.vrm", "default_2326.vrm",
+        "default_1649.vrm", "default_1802.vrm", "default_2196.vrm", "default_2298.vrm", "default_28.vrm"
+      ];
+
+      const avatars = [];
+
+      for (var i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const modelUrl = `./avatars/${file}`;
+        const id = `avatar_${i}`;
+        const avatar = await createAvatar(id, modelUrl);
+        avatars.push(avatar);
+      }
+
+
+
+      const initialAnimation = 'Idle';
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        scene.add(avatar.vrm.scene);
+        // avatar.vrm.scene.position.set(i, 0, 0);
+        playAnimation(avatar.id, initialAnimation);
+      }
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        playAnimation(avatar.id, 'Walking');
+      }
+      
+      while (true) {
+        for (var i = 0; i < avatars.length; i++) {
+          const avatar = avatars[i];
+          const randomDirection = getRandomDirection();
+          const target = avatar.vrm.scene.position.clone().add(randomDirection);
+  
+          moveAvatarToPoint(avatar, target, 1000);
+        }
+
+        // wait 0.5 seconds
+        await new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(null);
+          }, 1000);
+        });
+      }
+
+
+      /*
+
       const avatar1 = await createAvatar(AVATAR_ID_1, model1Url);
 
       scene.add(avatar1.vrm.scene);
       avatar1.vrm.scene.position.set(0.8, 0, 0);
-      avatar1.vrm.scene.rotation.y = Math.PI / 2;
-
-      const initialAnimation = 'Standard Idle';
-      
+      // avatar1.vrm.scene.rotation.y = Math.PI / 2;
 
       const avatar2 = await createAvatar(AVATAR_ID_2, model2Url);
       scene.add(avatar2.vrm.scene);
       avatar2.vrm.scene.position.set(-0.8, 0, 0);
-      avatar2.vrm.scene.rotation.y = -Math.PI / 2;
+      // avatar2.vrm.scene.rotation.y = -Math.PI / 2;
 
       playAnimation(AVATAR_ID_1, initialAnimation);
       playAnimation(AVATAR_ID_2, initialAnimation);
+
+      setTimeout(() => {
+        moveAvatarToPoint(avatar1, new THREE.Vector3(5, 0, 0), 2500);
+        moveAvatarToPoint(avatar2, new THREE.Vector3(-5, 0, 0), 2500);
+        playAnimation(avatar1.id, 'Walking');
+        playAnimation(avatar2.id, 'Walking');
+        setTimeout(() => {
+          moveAvatarToPoint(avatar1, new THREE.Vector3(5, 0, 5), 2500);
+          moveAvatarToPoint(avatar2, new THREE.Vector3(-5, 0, 5), 2500);
+          setTimeout(() => {
+            playAnimation(avatar1.id, 'Idle');
+            playAnimation(avatar2.id, 'Idle');
+          }, 2500);
+        }, 2500);
+      }, 1);
+      */
 
       /*
       'Jumping',
@@ -419,31 +631,31 @@ const Scene = () => {
       setTimeout(() => {
         playAnimation(AVATAR_ID_1, 'Jumping');
         playAnimation(AVATAR_ID_2, 'Jumping');
-
+ 
         setTimeout(() => {
           playAnimation(AVATAR_ID_1, 'Chicken Dance');
           playAnimation(AVATAR_ID_2, 'Chicken Dance');
-
+ 
           setTimeout(() => {
             playAnimation(AVATAR_ID_1, 'Gangnam Style');
             playAnimation(AVATAR_ID_2, 'Gangnam Style');
-
+ 
             setTimeout(() => {
               playAnimation(AVATAR_ID_1, 'Samba Dancing');
               playAnimation(AVATAR_ID_2, 'Samba Dancing');
-
+ 
               setTimeout(() => {
                 playAnimation(AVATAR_ID_1, 'Silly Dancing');
                 playAnimation(AVATAR_ID_2, 'Silly Dancing');
-
+ 
                 setTimeout(() => {
                   playAnimation(AVATAR_ID_1, 'Snake Hip Hop Dance');
                   playAnimation(AVATAR_ID_2, 'Snake Hip Hop Dance');
-
+ 
                   setTimeout(() => {
                     playAnimation(AVATAR_ID_1, 'Twist Dance');
                     playAnimation(AVATAR_ID_2, 'Twist Dance');
-
+ 
                     setTimeout(() => {
                       playAnimation(AVATAR_ID_1, 'Wave Hip Hop Dance');
                       playAnimation(AVATAR_ID_2, 'Wave Hip Hop Dance');
@@ -498,12 +710,13 @@ const Scene = () => {
               width: 300px;
               background-color: gray;
               overflow-y: scroll;
+              display: none;
             }
         `}
       </style>
       <div ref={containerRef} />
       <div className="chatbox_container">
-        <ChatBox 
+        <ChatBox
           playAnimationHandler={playAnimationHandler}
         />
       </div>
