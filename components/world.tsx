@@ -531,6 +531,7 @@ const Scene = () => {
     }
 
     async function initializeAvatars() {
+      /*
       const fileList = [
         "default_103.vrm", "default_1699.vrm", "default_1833.vrm", "default_2216.vrm", "default_2299.vrm", "default_862.vrm",
         "default_1311.vrm", "default_1705.vrm", "default_1882.vrm", "default_2235.vrm", "default_2313.vrm", "default_877.vrm",
@@ -539,7 +540,62 @@ const Scene = () => {
         "default_1578.vrm", "default_1714.vrm", "default_2192.vrm", "default_2297.vrm", "default_2326.vrm",
         "default_1649.vrm", "default_1802.vrm", "default_2196.vrm", "default_2298.vrm", "default_28.vrm"
       ];
+      */
 
+      const fileList = [
+        "frwc/wizard_3521.vrm",
+        "frwc/wizard_5667.vrm",
+        "frwc/wizard_6171.vrm",
+        "frwc/wizard_7281.vrm",
+        "frwc/wizard_8328.vrm",
+      ]
+
+      const avatars = [];
+
+      for (var i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const modelUrl = `./avatars/${file}`;
+        const id = `avatar_${i}`;
+        const avatar = await createAvatar(id, modelUrl);
+        avatars.push(avatar);
+      }
+
+      const avatar0 = avatars[0];
+
+      const initialAnimation = 'Idle';
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        scene.add(avatar.vrm.scene);
+        avatar.vrm.scene.position.set(i - 2, 0, 0);
+        playAnimation(avatar.id, initialAnimation);
+      }
+
+      for (var i = 0; i < avatars.length; i++) {
+        const avatar = avatars[i];
+        playAnimation(avatar.id, 'Chicken Dance');
+      }
+
+      /*
+      while (true) {
+        for (var i = 0; i < avatars.length; i++) {
+          const avatar = avatars[i];
+          const randomDirection = getRandomDirection();
+          const target = avatar.vrm.scene.position.clone().add(randomDirection);
+  
+          moveAvatarToPoint(avatar, target, 1000);
+        }
+
+        // wait 0.5 seconds
+        await new Promise((resolve, reject) => {
+          setTimeout(() => {
+            resolve(null);
+          }, 1000);
+        });
+      }
+      */
+      
+      /*
       const avatars = [];
 
       for (var i = 0; i < fileList.length; i++) {
@@ -582,6 +638,7 @@ const Scene = () => {
           }, 1000);
         });
       }
+      */
 
 
       /*
